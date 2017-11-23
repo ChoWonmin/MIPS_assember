@@ -1,0 +1,8 @@
+	.data
+data1:  .word   1
+data2:  .word   2
+main:
+lw $t0, $s1
+sw $t1, $s2
+add $t2, $t3, $s5
+sub $t3, $s4, $s3
