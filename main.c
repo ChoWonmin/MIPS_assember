@@ -8,14 +8,27 @@ typedef struct label{
     int value;
 }label;
 
+typedef struct opcode{
+    char name[10];
+    char code[6];
+    char type;
+    char funct[6];
+}opcode;
+
 int main(int argc, char* argv[])
 {
     int instNum=100;
     char inst_list[instNum][128];
 
-    char file_name[64] = "test01.txt";
+    char file_name[32] = "test01.txt";
     //printf("enter the file name :: ");
     //scanf("%s",file_name);
+
+    opcode opcode_list[21] = {
+                    {"ADDIU","001001",'i'},{"ADDU","000000",'r',"100001"},{"AND","000000",'r',"100100"},{"ANDI","001100",'i'},{"BEQ","000100",'i'},{"BNE","000110",'i'},{"000010",9,'j'},
+                    {"JAL","000011",'j'},{"JR","000000",'j',"001000"},{"LUI","111111",'i'},{"LW","100011",'i'},{"LA*",'l'},{"NOR","000000",'r',"100111"},{"OR","000000",'r',"100101"},
+                    {"ORI","001101",'i'},{"SLTIU","001011",'i'},{"SLTU","000000",'r',"101011"},{"SLL","000000",'r',"000000"},{"SRL","000000",'r',"000010"},{"SW","101011",'i'},{"SUBU","000000",'r',"100011"}
+                };
 
     int pc=0;
 
