@@ -12,21 +12,24 @@ typedef struct opcode{
     char name[10];
     char* code;
     char type;
-    char funct[6];
+    char* funct;
 }opcode;
 
+int convertDecimal(char* hex);
+void first_substring(char str[]);
+int* write_binary(int num, int len,FILE* file);
 int main(int argc, char* argv[])
 {
     int instNum=100;
     char inst_list[instNum][128];
 
     char file_name[32] = "test01.txt";
-    printf("enter the file name :: ");
-    scanf("%s",file_name);
+    printf("enter the file name :: \n");
+    //scanf("%s",file_name);
 
     opcode opcode_list[21] = {
                     {"addiu","001001",'i'},{"addu","000000",'r',"100001"},{"and","000000",'r',"100100"},{"andi","001100",'i'},{"beq","000100",'i'},{"bne","000110",'i'},{"j","000010",9,'j'},
-                    {"jal","000011",'j'},{"jr","000000",'j',"001000"},{"lui","111111",'i'},{"lw","100011",'i'},{"la","000000",'r',"000000"},{"nor","000000",'r',"100111"},{"or","000000",'r',"100101"},
+                    {"jal","000011",'j'},{"jr","000000",'j',"001000"},{"lui","111111",'i'},{"lw","100011",'i'},{"la","000000",'i',"000000"},{"nor","000000",'r',"100111"},{"or","000000",'r',"100101"},
                     {"ori","001101",'i'},{"sltiu","001011",'i'},{"sltu","000000",'r',"101011"},{"sll","000000",'r',"000000"},{"srl","000000",'r',"000010"},{"sw","101011",'i'},{"subu","000000",'r',"100011"}
                 };
 
@@ -84,86 +87,35 @@ int main(int argc, char* argv[])
             break;
     }
     pc=symbol_table[i].index;
+
     while(pc<instNum){
         strcpy(line,inst_list[pc]);
         int index =find_opcode(opcode_list,strtok(line," "),21);
         opcode findOp = opcode_list[index];
         fputs(findOp.code,fout); // opcode
-
+//printf("%s",findOp.code);
         strcpy(line,inst_list[pc]);
         char* tmp = strchr(line,' ');
         trim(tmp);
 
-        char* tmp2 = strtok(tmp,",");
-        if(tmp2[0]=='$'){ //register 인 경우
-            tmp2 = strtok(tmp2,"$");
-            fprintf(fout,"%d",atoi(tmp2));
+        if(findOp.type=='r'){
+            char* reg=strtok(tmp,",");
+
+            while(reg!=NULL){
+                trim(reg);
+                if(strncmp(reg,"0x",2)){
+                    first_substring(reg);
+                    first_substring(reg);
+                }
+                first_substring(reg);
+                write_binary(atoi(reg),5,fout);
+
+                reg=strtok(NULL,",");
+            }
+
+            fprintf(fout,"%s","000000"); //shamt
+            fprintf(fout,"%s",findOp.funct); // funct
         }
-        else{ // label인 경우
-            int tmp =find_label(symbol_table,tmp2,labelNum);
-            int res = symbol_table[tmp].value;
-            if(res==-1)
-                res=symbol_table[tmp].index;
-            fprintf(fout,"%d",atoi(res));
-        }
-
-        strcpy(line,inst_list[pc]);
-        tmp = strchr(line,' ');
-        trim(tmp);
-
-        tmp2 = strtok(tmp,",");
-        //tmp2 = strtok(NULL,",");
-        //if(tmp2!=NULL)
-            //trim(tmp2);
-
-        printf("%s \n",tmp2);
-
-        if(tmp2[0]=='$'){ //register 인 경우
-            tmp2 = strtok(tmp2,"$");
-            fprintf(fout,"%d",atoi(tmp2));
-        }
-        else if(tmp2==NULL || tmp2==""){
-
-            printf("aa");
-            fprintf(fout,"%s","000000");
-        }
-        else{ // label인 경우
-            int tmp =find_label(symbol_table,tmp2,labelNum);
-            int res = symbol_table[tmp].value;
-            if(res==-1)
-                res=symbol_table[tmp].index;
-            fprintf(fout,"%d",atoi(res));
-        }
-
-
-        strcpy(line,inst_list[pc]);
-        tmp = strchr(line,' ');
-        trim(tmp);
-
-        tmp2 = strtok(tmp,",");
-        //tmp2 = strtok(NULL,",");
-        //if(tmp2!=NULL)
-            //trim(tmp2);
-
-        printf("%s \n",tmp2);
-
-        if(tmp2[0]=='$'){ //register 인 경우
-            tmp2 = strtok(tmp2,"$");
-            fprintf(fout,"%d",atoi(tmp2));
-        }
-        else if(tmp2==NULL || tmp2==""){
-
-            printf("aa");
-            fprintf(fout,"%s","000000");
-        }
-        else{ // label인 경우
-            int tmp =find_label(symbol_table,tmp2,labelNum);
-            int res = symbol_table[tmp].value;
-            if(res==-1)
-                res=symbol_table[tmp].index;
-            fprintf(fout,"%d",atoi(res));
-        }
-
 
         pc++;
     }
@@ -240,6 +192,64 @@ int find_label(label symbol_table[],char *name,int length){
 
     return i;
 }
+int* write_binary(int num, int len,FILE* file){
 
+    int res[len];
+    int i=0;
+    for(i=0;i<len;i++)
+        res[i]=0;
+
+    int index=len-1;
+    while(num>0){
+        int remainder=num%2;
+        num/=2;
+        res[index--]=remainder;
+    }
+
+    for(i=0;i<len;i++){
+        fprintf(file,"%d",res[i]);
+//printf("%d",res[i]);
+    }
+
+    return res;
+}
+void first_substring(char str[]) {
+    str[0]=str[1];
+    str[1]=str[2];
+    str[2]=str[3];
+    /*
+    int i=0;
+    printf("%s", str);
+    while(str[i-1]!='\0'){
+        str[i]=str[i+1];
+        i++;
+    }
+    */
+}
+int convertDecimal(char* hex){
+    int decimal = 0;
+
+    int position = 0;
+    for (int i = strlen(hex) - 1; i >= 0; i--)
+    {
+        char ch = hex[i];
+        if (ch >= 48 && ch <= 57)
+        {
+            decimal += (ch - 48) * pow(16, position);
+        }
+        else if (ch >= 65 && ch <= 70)
+            decimal += (ch - (65 - 10)) * pow(16, position);
+        }
+        else if (ch >= 97 && ch <= 102)
+        {
+            decimal += (ch - (97 - 10)) * pow(16, position);
+        }
+
+        position++;
+    }
+
+    return decimal;
+
+}
 
 
