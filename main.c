@@ -14,6 +14,8 @@ typedef struct opcode{
     char* funct;
 }opcode;
 
+int find_opcode(opcode opcode_list[],char *name,int length);
+int find_label(label symbol_table[],char *name,int length);
 int convertDecimal(char* hex);
 void first_substring(char str[]);
 int* write_binary(int num, int len,FILE* file);
@@ -24,11 +26,11 @@ int main(int argc, char* argv[])
 
     char file_name[32] = "test01.txt";
     printf("enter the file name :: \n");
-    //scanf("%s",file_name);
+    scanf("%s",file_name);
 
     opcode opcode_list[21] = {
                     {"addiu","001001",'i'},{"addu","000000",'r',"100001"},{"and","000000",'r',"100100"},{"andi","001100",'i'},{"beq","000100",'i'},{"bne","000110",'i'},{"j","000010",'j'},
-                    {"jal","000011",'j'},{"jr","000000",'j',"001000"},{"lui","111111",'i'},{"lw","100011",'i'},{"la","000000",'s',"000000"},{"nor","000000",'r',"100111"},{"or","000000",'r',"100101"},
+                    {"jal","000011",'j'},{"jr","000000",'j',"001000"},{"lui","111111",'i'},{"lw","100011",'i'},{"la","111111",'s',"001101"},{"nor","000000",'r',"100111"},{"or","000000",'r',"100101"},
                     {"ori","001101",'i'},{"sltiu","001011",'i'},{"sltu","000000",'r',"101011"},{"sll","000000",'r',"000000"},{"srl","000000",'r',"000010"},{"sw","101011",'i'},{"subu","000000",'r',"100011"}
                 };
 
@@ -171,6 +173,22 @@ int main(int argc, char* argv[])
             int ind=find_label(symbol_table,reg,labelNum);
             label jlabel=symbol_table[ind];
             write_binary(jlabel.value,16,fout);
+        }else if(findOp.type=='s'){
+            char* reg1=strtok(tmp,",");
+            char* reg2=strtok(NULL,",");
+            trim(reg1);
+            trim(reg2);
+
+            first_substring(reg1);
+            write_binary(atoi(reg1),5,fout);
+            write_binary(symbol_table[atoi(reg2)].value,16,fout);
+
+            fprintf(fout,"%s","001101"); //ori
+
+            first_substring(reg1);
+            write_binary(atoi(reg1),5,fout);
+            write_binary(symbol_table[atoi(reg2)].value,16,fout);
+
         }
 
         pc++;
@@ -178,15 +196,15 @@ int main(int argc, char* argv[])
 
 
 printf("\n");
-
+    printf("============ instruction ==============\n");
     for(i=0;i<instNum;i++){
         printf("%s",inst_list[i]);
     }
 
-    printf("==========================\n");
+    printf("============ symbol table ==============\n");
 
     for(i=0;i<labelNum;i++){
-        printf("%s,%d\n",symbol_table[i].name, symbol_table[i].value);
+        printf("%s :: %d\n",symbol_table[i].name, symbol_table[i].value);
     }
 
     printf("\n");
