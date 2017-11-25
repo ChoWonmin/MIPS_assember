@@ -3,7 +3,6 @@
 #include <string.h>
 
 typedef struct label{
-    int index;
     char name[10];
     int value;
 }label;
@@ -28,8 +27,8 @@ int main(int argc, char* argv[])
     //scanf("%s",file_name);
 
     opcode opcode_list[21] = {
-                    {"addiu","001001",'i'},{"addu","000000",'r',"100001"},{"and","000000",'r',"100100"},{"andi","001100",'i'},{"beq","000100",'i'},{"bne","000110",'i'},{"j","000010",9,'j'},
-                    {"jal","000011",'j'},{"jr","000000",'j',"001000"},{"lui","111111",'i'},{"lw","100011",'i'},{"la","000000",'i',"000000"},{"nor","000000",'r',"100111"},{"or","000000",'r',"100101"},
+                    {"addiu","001001",'i'},{"addu","000000",'r',"100001"},{"and","000000",'r',"100100"},{"andi","001100",'i'},{"beq","000100",'i'},{"bne","000110",'i'},{"j","000010",'j'},
+                    {"jal","000011",'j'},{"jr","000000",'j',"001000"},{"lui","111111",'i'},{"lw","100011",'i'},{"la","000000",'s',"000000"},{"nor","000000",'r',"100111"},{"or","000000",'r',"100101"},
                     {"ori","001101",'i'},{"sltiu","001011",'i'},{"sltu","000000",'r',"101011"},{"sll","000000",'r',"000000"},{"srl","000000",'r',"000010"},{"sw","101011",'i'},{"subu","000000",'r',"100011"}
                 };
 
@@ -53,9 +52,14 @@ int main(int argc, char* argv[])
 
         char temp[128];
         strcpy(temp,line);
-
-        if(strchr(temp,':')!=NULL){ //label이 있는 경우
-            symbol_table[labelNum].index=i;
+        if(strchr(temp,':')==NULL) {
+            trim(line);
+            if(line[0]!='.'){
+                strcpy(inst_list[i],line);
+                i++;
+            }
+        }else { //label이 있는 경우
+            symbol_table[labelNum].value=i;
             strcpy(symbol_table[labelNum].name,strtok(temp,":"));
             strcpy(temp,line);
 
@@ -67,33 +71,53 @@ int main(int argc, char* argv[])
                     strcpy(temp2,temp2+2);
                 symbol_table[labelNum].value = atoi(temp2);
             }else{
-                symbol_table[labelNum].value = -1;
+                symbol_table[labelNum].value = i;
             }
 
             labelNum++;
-        }else {
-            trim(line);
-            if(line[0]!='.'){
-                strcpy(inst_list[i],line);
-                i++;
-            }
         }
     }
+
     instNum=i;
+
+    for(i=0;i<instNum;i++){
+        char temp[64];
+        strcpy(temp,inst_list[i]);
+        if(strchr(temp,':')!=NULL){ //label이 있는 경우
+            symbol_table[labelNum].value=i;
+
+            strcpy(symbol_table[labelNum].name,strtok(temp,":"));
+            strcpy(temp,line);
+
+            char* temp2 = strstr(temp,".word");
+            if(temp2){
+                temp2 = strchr(temp2,' ');
+                trim(temp2);
+                if(!strncmp(temp2,"0x",2))
+                    strcpy(temp2,temp2+2);
+                    symbol_table[labelNum].value = atoi(temp2);
+                }
+                labelNum++;
+        }
+
+    }
+
+
 
     // second pass
     for(i=0;i<labelNum;i++){
         if(!strcmp(symbol_table[i].name,"main")) //label의 name이 main 부터 pc 실행
             break;
     }
-    pc=symbol_table[i].index;
+    pc=symbol_table[i].value+1;
+
 
     while(pc<instNum){
         strcpy(line,inst_list[pc]);
         int index =find_opcode(opcode_list,strtok(line," "),21);
         opcode findOp = opcode_list[index];
         fputs(findOp.code,fout); // opcode
-//printf("%s",findOp.code);
+
         strcpy(line,inst_list[pc]);
         char* tmp = strchr(line,' ');
         trim(tmp);
@@ -106,15 +130,47 @@ int main(int argc, char* argv[])
                 if(strncmp(reg,"0x",2)){
                     first_substring(reg);
                     first_substring(reg);
+                    write_binary(convertDecimal(reg),5,fout);
+                }else{
+                    first_substring(reg);
+                    write_binary(atoi(reg),5,fout);
                 }
-                first_substring(reg);
-                write_binary(atoi(reg),5,fout);
-
                 reg=strtok(NULL,",");
             }
 
             fprintf(fout,"%s","000000"); //shamt
             fprintf(fout,"%s",findOp.funct); // funct
+        }else if(findOp.type=='i'){
+            char* reg=strtok(tmp,",");
+
+            for(int i=0;i<2;i++){
+                trim(reg);
+                if(strncmp(reg,"0x",2)){
+                    first_substring(reg);
+                    first_substring(reg);
+                    write_binary(convertDecimal(reg),5,fout);
+                }else{
+                    first_substring(reg);
+                    write_binary(atoi(reg),5,fout);
+                }
+                reg=strtok(NULL,",");
+            }
+
+            trim(reg);
+            if(strncmp(reg,"0x",2)){
+                first_substring(reg);
+                first_substring(reg);
+                write_binary(convertDecimal(reg),5,fout);
+            }else{
+                first_substring(reg);
+                write_binary(atoi(reg),16,fout);
+            }
+        }else if(findOp.type=='j'){
+            char* reg=strtok(tmp," ");
+            trim(reg);
+            int ind=find_label(symbol_table,reg,labelNum);
+            label jlabel=symbol_table[ind];
+            write_binary(jlabel.value,16,fout);
         }
 
         pc++;
@@ -124,11 +180,13 @@ int main(int argc, char* argv[])
 printf("\n");
 
     for(i=0;i<instNum;i++){
-        //printf("%s",inst_list[i]);
+        printf("%s",inst_list[i]);
     }
 
+    printf("==========================\n");
+
     for(i=0;i<labelNum;i++){
-        //printf("%d , %s , %d\n",symbol_table[i].index,symbol_table[i].name, symbol_table[i].value);
+        printf("%s,%d\n",symbol_table[i].name, symbol_table[i].value);
     }
 
     printf("\n");
@@ -186,7 +244,7 @@ int find_label(label symbol_table[],char *name,int length){
     int i=0;
 
     for(i=0;i<length;i++){
-        if(!strcmp(symbol_table[i].name,name))
+        if(!strncmp(symbol_table[i].name,name,4))
             break;
     }
 
@@ -208,7 +266,6 @@ int* write_binary(int num, int len,FILE* file){
 
     for(i=0;i<len;i++){
         fprintf(file,"%d",res[i]);
-//printf("%d",res[i]);
     }
 
     return res;
@@ -237,7 +294,7 @@ int convertDecimal(char* hex){
         {
             decimal += (ch - 48) * pow(16, position);
         }
-        else if (ch >= 65 && ch <= 70)
+        else if (ch >= 65 && ch <= 70){
             decimal += (ch - (65 - 10)) * pow(16, position);
         }
         else if (ch >= 97 && ch <= 102)
