@@ -10,7 +10,7 @@ typedef struct label{
 
 typedef struct opcode{
     char name[10];
-    char code[6];
+    char* code;
     char type;
     char funct[6];
 }opcode;
@@ -21,13 +21,13 @@ int main(int argc, char* argv[])
     char inst_list[instNum][128];
 
     char file_name[32] = "test01.txt";
-    //printf("enter the file name :: ");
-    //scanf("%s",file_name);
+    printf("enter the file name :: ");
+    scanf("%s",file_name);
 
     opcode opcode_list[21] = {
-                    {"ADDIU","001001",'i'},{"ADDU","000000",'r',"100001"},{"AND","000000",'r',"100100"},{"ANDI","001100",'i'},{"BEQ","000100",'i'},{"BNE","000110",'i'},{"000010",9,'j'},
-                    {"JAL","000011",'j'},{"JR","000000",'j',"001000"},{"LUI","111111",'i'},{"LW","100011",'i'},{"LA*",'l'},{"NOR","000000",'r',"100111"},{"OR","000000",'r',"100101"},
-                    {"ORI","001101",'i'},{"SLTIU","001011",'i'},{"SLTU","000000",'r',"101011"},{"SLL","000000",'r',"000000"},{"SRL","000000",'r',"000010"},{"SW","101011",'i'},{"SUBU","000000",'r',"100011"}
+                    {"addiu","001001",'i'},{"addu","000000",'r',"100001"},{"and","000000",'r',"100100"},{"andi","001100",'i'},{"beq","000100",'i'},{"bne","000110",'i'},{"j","000010",9,'j'},
+                    {"jal","000011",'j'},{"jr","000000",'j',"001000"},{"lui","111111",'i'},{"lw","100011",'i'},{"la","000000",'r',"000000"},{"nor","000000",'r',"100111"},{"or","000000",'r',"100101"},
+                    {"ori","001101",'i'},{"sltiu","001011",'i'},{"sltu","000000",'r',"101011"},{"sll","000000",'r',"000000"},{"srl","000000",'r',"000010"},{"sw","101011",'i'},{"subu","000000",'r',"100011"}
                 };
 
     int pc=0;
@@ -44,12 +44,10 @@ int main(int argc, char* argv[])
     }
 
     // first pass
-
     int i=0;
     char line[128];
     while (fgets(line, 128, fin)) {
 
-        strcpy(inst_list[i],line);
         char temp[128];
         strcpy(temp,line);
 
@@ -68,26 +66,110 @@ int main(int argc, char* argv[])
             }else{
                 symbol_table[labelNum].value = -1;
             }
+
             labelNum++;
+        }else {
+            trim(line);
+            if(line[0]!='.'){
+                strcpy(inst_list[i],line);
+                i++;
+            }
         }
-        i++;
     }
     instNum=i;
 
     // second pass
-
     for(i=0;i<labelNum;i++){
         if(!strcmp(symbol_table[i].name,"main")) //label의 name이 main 부터 pc 실행
             break;
     }
-    pc=symbol_table[i].index+1;
+    pc=symbol_table[i].index;
     while(pc<instNum){
-        printf("%d %s",pc,inst_list[pc]);
+        strcpy(line,inst_list[pc]);
+        int index =find_opcode(opcode_list,strtok(line," "),21);
+        opcode findOp = opcode_list[index];
+        fputs(findOp.code,fout); // opcode
+
+        strcpy(line,inst_list[pc]);
+        char* tmp = strchr(line,' ');
+        trim(tmp);
+
+        char* tmp2 = strtok(tmp,",");
+        if(tmp2[0]=='$'){ //register 인 경우
+            tmp2 = strtok(tmp2,"$");
+            fprintf(fout,"%d",atoi(tmp2));
+        }
+        else{ // label인 경우
+            int tmp =find_label(symbol_table,tmp2,labelNum);
+            int res = symbol_table[tmp].value;
+            if(res==-1)
+                res=symbol_table[tmp].index;
+            fprintf(fout,"%d",atoi(res));
+        }
+
+        strcpy(line,inst_list[pc]);
+        tmp = strchr(line,' ');
+        trim(tmp);
+
+        tmp2 = strtok(tmp,",");
+        //tmp2 = strtok(NULL,",");
+        //if(tmp2!=NULL)
+            //trim(tmp2);
+
+        printf("%s \n",tmp2);
+
+        if(tmp2[0]=='$'){ //register 인 경우
+            tmp2 = strtok(tmp2,"$");
+            fprintf(fout,"%d",atoi(tmp2));
+        }
+        else if(tmp2==NULL || tmp2==""){
+
+            printf("aa");
+            fprintf(fout,"%s","000000");
+        }
+        else{ // label인 경우
+            int tmp =find_label(symbol_table,tmp2,labelNum);
+            int res = symbol_table[tmp].value;
+            if(res==-1)
+                res=symbol_table[tmp].index;
+            fprintf(fout,"%d",atoi(res));
+        }
+
+
+        strcpy(line,inst_list[pc]);
+        tmp = strchr(line,' ');
+        trim(tmp);
+
+        tmp2 = strtok(tmp,",");
+        //tmp2 = strtok(NULL,",");
+        //if(tmp2!=NULL)
+            //trim(tmp2);
+
+        printf("%s \n",tmp2);
+
+        if(tmp2[0]=='$'){ //register 인 경우
+            tmp2 = strtok(tmp2,"$");
+            fprintf(fout,"%d",atoi(tmp2));
+        }
+        else if(tmp2==NULL || tmp2==""){
+
+            printf("aa");
+            fprintf(fout,"%s","000000");
+        }
+        else{ // label인 경우
+            int tmp =find_label(symbol_table,tmp2,labelNum);
+            int res = symbol_table[tmp].value;
+            if(res==-1)
+                res=symbol_table[tmp].index;
+            fprintf(fout,"%d",atoi(res));
+        }
+
+
         pc++;
     }
 
 
-
+printf("\n");
 
     for(i=0;i<instNum;i++){
         //printf("%s",inst_list[i]);
@@ -139,7 +221,25 @@ int trim (char *line)
 
         return strlen(line);
 };
+int find_opcode(opcode opcode_list[],char *name,int length){
+    int i=0;
+    for(i=0;i<length;i++){
+        if(!strcmp(opcode_list[i].name,name))
+            break;
+    }
 
+    return i;
+}
+int find_label(label symbol_table[],char *name,int length){
+    int i=0;
+
+    for(i=0;i<length;i++){
+        if(!strcmp(symbol_table[i].name,name))
+            break;
+    }
+
+    return i;
+}
 
 
 
