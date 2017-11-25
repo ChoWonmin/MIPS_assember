@@ -37,6 +37,7 @@ int main(int argc, char* argv[])
     float res[32] = {0.0f};
 
     FILE* fin = fopen(file_name,"r");
+    FILE* fout = fopen("result.txt","w");
     if(fin==NULL){
         printf("file updload fail\n");
         return -1;
@@ -59,6 +60,9 @@ int main(int argc, char* argv[])
             if(temp2){
                 temp2 = strchr(temp2,' ');
                 trim(temp2);
+                if(!strncmp(temp2,"0x",2))
+                    strcpy(temp2,temp2+2);
+                printf("%s",temp2);
                 symbol_table[labelNum].value = atoi(temp2);
             }else{
                 symbol_table[labelNum].value = -1;
@@ -69,16 +73,27 @@ int main(int argc, char* argv[])
     }
     instNum=i;
 
+
+
+
+
+
+
+
+
+
+
     for(i=0;i<instNum;i++){
         //printf("%s",inst_list[i]);
     }
 
     for(i=0;i<labelNum;i++){
-        printf("%d , %s , %d\n",symbol_table[i].index,symbol_table[i].name, symbol_table[i].value);
+        //printf("%d , %s , %d\n",symbol_table[i].index,symbol_table[i].name, symbol_table[i].value);
     }
 
     printf("\n");
     fclose(fin);
+    fclose(fout);
 
     return 0;
 }
