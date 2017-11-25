@@ -43,6 +43,8 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    // first pass
+
     int i=0;
     char line[128];
     while (fgets(line, 128, fin)) {
@@ -62,7 +64,6 @@ int main(int argc, char* argv[])
                 trim(temp2);
                 if(!strncmp(temp2,"0x",2))
                     strcpy(temp2,temp2+2);
-                printf("%s",temp2);
                 symbol_table[labelNum].value = atoi(temp2);
             }else{
                 symbol_table[labelNum].value = -1;
@@ -73,12 +74,17 @@ int main(int argc, char* argv[])
     }
     instNum=i;
 
+    // second pass
 
-
-
-
-
-
+    for(i=0;i<labelNum;i++){
+        if(!strcmp(symbol_table[i].name,"main")) //label의 name이 main 부터 pc 실행
+            break;
+    }
+    pc=symbol_table[i].index+1;
+    while(pc<instNum){
+        printf("%d %s",pc,inst_list[pc]);
+        pc++;
+    }
 
 
 
@@ -132,8 +138,7 @@ int trim (char *line)
         strcpy (line, cpTrim+xMan);
 
         return strlen(line);
-}
-
+};
 
 
 
