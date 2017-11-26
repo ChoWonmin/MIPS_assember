@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     int instNum=100;
     char inst_list[instNum][128];
 
-    char file_name[32] = "test01.txt";
+    char file_name[32] = "test02.txt";
     printf("enter the file name :: \n");
     scanf("%s",file_name);
 
@@ -59,8 +59,19 @@ int main(int argc, char* argv[])
             if(line[0]!='.'){
                 strcpy(inst_list[i],line);
                 i++;
+            }else if(strstr(temp,".word")!=NULL){
+                char* temp2 = strstr(temp,".word");
+                temp2 = strchr(temp2,' ');
+                trim(temp2);
+                strcpy(symbol_table[labelNum].name,"00");
+
+                if(!strncmp(temp2,"0x",2))
+                    strcpy(temp2,temp2+2);
+                symbol_table[labelNum].value = atoi(temp2);
+
+                labelNum++;
             }
-        }else { //label이 있는 경우
+        }else if(strchr(temp,':')!=NULL){ //label이 있는 경우
             symbol_table[labelNum].value=i;
             strcpy(symbol_table[labelNum].name,strtok(temp,":"));
             strcpy(temp,line);
@@ -82,30 +93,6 @@ int main(int argc, char* argv[])
 
     instNum=i;
 
-    for(i=0;i<instNum;i++){
-        char temp[64];
-        strcpy(temp,inst_list[i]);
-        if(strchr(temp,':')!=NULL){ //label이 있는 경우
-            symbol_table[labelNum].value=i;
-
-            strcpy(symbol_table[labelNum].name,strtok(temp,":"));
-            strcpy(temp,line);
-
-            char* temp2 = strstr(temp,".word");
-            if(temp2){
-                temp2 = strchr(temp2,' ');
-                trim(temp2);
-                if(!strncmp(temp2,"0x",2))
-                    strcpy(temp2,temp2+2);
-                    symbol_table[labelNum].value = atoi(temp2);
-                }
-                labelNum++;
-        }
-
-    }
-
-
-
     // second pass
     for(i=0;i<labelNum;i++){
         if(!strcmp(symbol_table[i].name,"main")) //label의 name이 main 부터 pc 실행
@@ -123,7 +110,6 @@ int main(int argc, char* argv[])
         strcpy(line,inst_list[pc]);
         char* tmp = strchr(line,' ');
         trim(tmp);
-
         if(findOp.type=='r'){
             char* reg=strtok(tmp,",");
 
@@ -158,14 +144,18 @@ int main(int argc, char* argv[])
                 reg=strtok(NULL,",");
             }
 
-            trim(reg);
-            if(strncmp(reg,"0x",2)){
-                first_substring(reg);
-                first_substring(reg);
-                write_binary(convertDecimal(reg),5,fout);
+            if(reg!=NULL){
+                trim(reg);
+                if(strncmp(reg,"0x",2)){
+                    first_substring(reg);
+                    first_substring(reg);
+                    write_binary(convertDecimal(reg),16,fout);
+                }else{
+                    first_substring(reg);
+                    write_binary(atoi(reg),16,fout);
+                }
             }else{
-                first_substring(reg);
-                write_binary(atoi(reg),16,fout);
+                write_binary(0,16,fout);
             }
         }else if(findOp.type=='j'){
             char* reg=strtok(tmp," ");
@@ -326,5 +316,4 @@ int convertDecimal(char* hex){
     return decimal;
 
 }
-
 
